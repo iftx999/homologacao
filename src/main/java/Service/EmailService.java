@@ -1,0 +1,22 @@
+package Service;
+
+@Service
+public class EmailService {
+
+    private final JavaMailSender mailSender;
+
+    public EmailService(JavaMailSender mailSender) {
+        this.mailSender = mailSender;
+    }
+
+    public void enviarEmail(String para, String assunto, String corpo) {
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(para);
+        message.setSubject(assunto);
+        message.setText(corpo);
+
+        mailSender.send(message);
+    }
+}
+
