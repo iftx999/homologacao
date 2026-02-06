@@ -6,6 +6,7 @@ import Model.Icho;
 import Model.Implantacao;
 import Repository.IchoRepository;
 import Repository.ImplantacaoRepository;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
