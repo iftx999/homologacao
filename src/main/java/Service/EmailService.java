@@ -1,5 +1,8 @@
 package Service;
 
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+
 @Service
 public class EmailService {
 
