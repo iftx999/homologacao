@@ -1,8 +1,8 @@
-package Model;
+package com.example.homologacao.model;
 
-import Model.Enum.StatusIcho;
-import Model.Implantacao;
-import Model.Modulo;
+
+
+import com.example.homologacao.model.Enum.StatusIcho;
 import jakarta.persistence.*;
 import lombok.*;
 

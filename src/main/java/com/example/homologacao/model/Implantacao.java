@@ -1,4 +1,4 @@
-package Model;
+package com.example.homologacao.model;
 
 import Model.Enum.StatusImplantacao;
 import jakarta.persistence.*;

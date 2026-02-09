@@ -1,4 +1,4 @@
-package Controller;
+package com.example.homologacao.Controller;
 
 import Model.Modulo;
 import Service.ModuloService;

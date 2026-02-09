@@ -1,8 +1,8 @@
-package Controller;
+package com.example.homologacao.Controller;
 
-import Model.Enum.StatusIcho;
-import Model.Icho;
-import Service.IchoService;
+
+import com.example.homologacao.model.Enum.StatusIcho;
+import com.example.homologacao.model.Icho;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,9 +13,9 @@ import java.util.List;
 @CrossOrigin
 public class IchoController {
 
-    private final IchoService service;
+    private final Service.IchoService service;
 
-    public IchoController(IchoService service) {
+    public IchoController(Service.IchoService service) {
         this.service = service;
     }
 

@@ -1,4 +1,4 @@
-package Controller;
+package com.example.homologacao.Controller;
 
 import Model.Enum.StatusImplantacao;
 import Model.Implantacao;

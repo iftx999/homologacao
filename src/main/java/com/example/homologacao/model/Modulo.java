@@ -1,4 +1,4 @@
-package Model;
+package com.example.homologacao.model;
 
 import jakarta.persistence.*;
 import lombok.*;
