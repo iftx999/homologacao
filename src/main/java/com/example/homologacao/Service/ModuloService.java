@@ -1,7 +1,7 @@
-package Service;
+package com.example.homologacao.Service;
 
-import Model.Modulo;
-import Repository.ModuloRepository;
+import com.example.homologacao.Repository.ModuloRepository;
+import com.example.homologacao.model.Modulo;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

@@ -1,6 +1,6 @@
-package Repository;
+package com.example.homologacao.Repository;
 
-import Model.Modulo;
+import com.example.homologacao.model.Modulo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

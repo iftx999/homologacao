@@ -1,10 +1,12 @@
 package com.example.homologacao.Controller;
 
-import Model.Enum.StatusImplantacao;
-import Model.Implantacao;
-import Service.ImplantacaoService;
+
+import com.example.homologacao.Service.ImplantacaoService;
+import com.example.homologacao.model.Implantacao;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 
 @RestController
@@ -29,12 +31,17 @@ public class ImplantacaoController {
     }
 
     @GetMapping("/{id}/status")
-    public ResponseEntity<StatusImplantacao> status(@PathVariable Long id) {
+    public ResponseEntity<Model.Enum.StatusImplantacao> status(@PathVariable Long id) {
         return ResponseEntity.ok(service.avaliarStatus(id));
     }
 
     @GetMapping("/{id}/pendencias")
     public ResponseEntity<Boolean> possuiPendencias(@PathVariable Long id) {
         return ResponseEntity.ok(service.possuiPendenciasAposGoLive(id));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Implantacao>> listar() {
+        return ResponseEntity.ok(service.listar());
     }
 }

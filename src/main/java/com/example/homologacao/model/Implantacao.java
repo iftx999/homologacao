@@ -32,6 +32,9 @@ public class Implantacao {
     @OneToMany(mappedBy = "implantacao", cascade = CascadeType.ALL)
     private List<Icho> ichos;
 
+    public Implantacao() {
+    }
+
     public Implantacao(Long id, String nome, LocalDate dataGoLive, StatusImplantacao status, String observacao, List<Icho> ichos) {
         this.id = id;
         this.nome = nome;

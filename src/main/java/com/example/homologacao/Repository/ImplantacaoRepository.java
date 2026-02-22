@@ -1,7 +1,6 @@
-package Repository;
+package com.example.homologacao.Repository;
 
-import Model.Enum.StatusImplantacao;
-import Model.Implantacao;
+import com.example.homologacao.model.Implantacao;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -11,5 +10,5 @@ import java.util.List;
 public interface ImplantacaoRepository extends JpaRepository<Implantacao, Long> {
 
 
-    List<Implantacao> findByStatus(StatusImplantacao status);
+    List<Implantacao> findByStatus(Model.Enum.StatusImplantacao status);
 }

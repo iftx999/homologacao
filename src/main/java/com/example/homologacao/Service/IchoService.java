@@ -1,10 +1,10 @@
-package Service;
+package com.example.homologacao.Service;
 
-import Model.Enum.StatusIcho;
-import Model.Icho;
-import Model.Implantacao;
-import Repository.IchoRepository;
-import Repository.ImplantacaoRepository;
+import com.example.homologacao.Repository.IchoRepository;
+import com.example.homologacao.Repository.ImplantacaoRepository;
+import com.example.homologacao.model.Enum.StatusIcho;
+import com.example.homologacao.model.Icho;
+import com.example.homologacao.model.Implantacao;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;

@@ -1,7 +1,7 @@
 package com.example.homologacao.Controller;
 
-import Model.Modulo;
-import Service.ModuloService;
+import com.example.homologacao.Service.ModuloService;
+import com.example.homologacao.model.Modulo;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

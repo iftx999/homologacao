@@ -1,11 +1,10 @@
-package Service;
+package com.example.homologacao.Service;
 
-import Model.Enum.StatusIcho;
-import Model.Enum.StatusImplantacao;
-import Model.Icho;
-import Model.Implantacao;
-import Repository.IchoRepository;
-import Repository.ImplantacaoRepository;
+import com.example.homologacao.Repository.IchoRepository;
+import com.example.homologacao.Repository.ImplantacaoRepository;
+import com.example.homologacao.model.Enum.StatusIcho;
+import com.example.homologacao.model.Icho;
+import com.example.homologacao.model.Implantacao;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -26,7 +25,7 @@ public class ImplantacaoService {
     }
 
     public Implantacao criar(Implantacao implantacao) {
-        implantacao.setStatus(StatusImplantacao.EM_ANDAMENTO);
+        implantacao.setStatus(Model.Enum.StatusImplantacao.EM_ANDAMENTO);
         return implantacaoRepository.save(implantacao);
     }
 
@@ -35,7 +34,7 @@ public class ImplantacaoService {
                 .orElseThrow(() -> new RuntimeException("Implantação não encontrada"));
     }
 
-    public StatusImplantacao avaliarStatus(Long implantacaoId) {
+    public Model.Enum.StatusImplantacao avaliarStatus(Long implantacaoId) {
 
         List<Icho> ichos = ichoRepository.findByImplantacaoId(implantacaoId);
 
@@ -46,20 +45,20 @@ public class ImplantacaoService {
                 .anyMatch(i -> i.getStatus() != StatusIcho.OK);
 
         if (existeFalha) {
-            atualizarStatus(implantacaoId, StatusImplantacao.REPROVADA);
-            return StatusImplantacao.REPROVADA;
+            atualizarStatus(implantacaoId, Model.Enum.StatusImplantacao.REPROVADA);
+            return Model.Enum.StatusImplantacao.REPROVADA;
         }
 
         if (existePendente) {
-            atualizarStatus(implantacaoId, StatusImplantacao.EM_HOMOLOGACAO);
-            return StatusImplantacao.EM_HOMOLOGACAO;
+            atualizarStatus(implantacaoId, Model.Enum.StatusImplantacao.EM_HOMOLOGACAO);
+            return Model.Enum.StatusImplantacao.EM_HOMOLOGACAO;
         }
 
-        atualizarStatus(implantacaoId, StatusImplantacao.APROVADA);
-        return StatusImplantacao.APROVADA;
+        atualizarStatus(implantacaoId, Model.Enum.StatusImplantacao.APROVADA);
+        return Model.Enum.StatusImplantacao.APROVADA;
     }
 
-    private void atualizarStatus(Long id, StatusImplantacao status) {
+    private void atualizarStatus(Long id, Model.Enum.StatusImplantacao status) {
         Implantacao impl = buscarPorId(id);
         impl.setStatus(status);
         implantacaoRepository.save(impl);
@@ -79,7 +78,7 @@ public class ImplantacaoService {
     public void validarImplantacoes() {
 
         List<Implantacao> implantacoes =
-                implantacaoRepository.findByStatus(StatusImplantacao.EM_HOMOLOGACAO);
+                implantacaoRepository.findByStatus(Model.Enum.StatusImplantacao.EM_HOMOLOGACAO);
 
         for (Implantacao implantacao : implantacoes) {
 
@@ -95,9 +94,9 @@ public class ImplantacaoService {
                     );
 
             if (possuiPendencias) {
-                implantacao.setStatus(StatusImplantacao.REPROVADA);
+                implantacao.setStatus(Model.Enum.StatusImplantacao.REPROVADA);
             } else {
-                implantacao.setStatus(StatusImplantacao.APROVADA);
+                implantacao.setStatus(Model.Enum.StatusImplantacao.APROVADA);
             }
 
             implantacaoRepository.save(implantacao);
@@ -125,4 +124,8 @@ public class ImplantacaoService {
                 corpo
         );
     }
+    public List<Implantacao> listar() {
+        return implantacaoRepository.findAll();
+    }
+
 }

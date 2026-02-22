@@ -1,9 +1,10 @@
-package Repository;
+package com.example.homologacao.Repository;
 
-import Model.Enum.StatusIcho;
-import Model.Icho;
+import com.example.homologacao.model.Enum.StatusIcho;
+import com.example.homologacao.model.Icho;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -39,12 +40,27 @@ public interface IchoRepository extends JpaRepository<Icho, Long> {
     );
 
     // Para scheduler
-    boolean existsPendencias(Long implantacaoId);
+    @Query("""
+    SELECT CASE WHEN COUNT(i) > 0 THEN true ELSE false END
+    FROM Icho i
+    WHERE i.implantacao.id = :implantacaoId
+    AND i.status IN ('PENDENTE', 'NAO_TESTADO')
+""")
+    boolean existsPendencias(@Param("implantacaoId") Long implantacaoId);
 
     // Para tela
+    @Query("""
+    SELECT i FROM Icho i
+    WHERE i.status IN ('PENDENTE', 'NAO_TESTADO')
+""")
     List<Icho> buscarPendencias();
 
     // Para relatório
-    List<Icho> buscarPendenciasPorImplantacao(Long implantacaoId);
+    @Query("""
+    SELECT i FROM Icho i
+    WHERE i.implantacao.id = :implantacaoId
+    AND i.status IN ('PENDENTE', 'NAO_TESTADO')
+""")
+    List<Icho> buscarPendenciasPorImplantacao(@Param("implantacaoId") Long implantacaoId);
 
 }
