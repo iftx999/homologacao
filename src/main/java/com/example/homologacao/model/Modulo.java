@@ -17,4 +17,8 @@ public class Modulo {
     private String nome;
 
     private String descricao;
+
+    @ManyToOne
+    @JoinColumn(name = "id_implantacao", nullable = false)
+    private Implantacao implantacao;
 }

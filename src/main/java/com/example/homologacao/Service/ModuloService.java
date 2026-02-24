@@ -27,4 +27,7 @@ public class ModuloService {
     public Optional<Modulo> buscarPorId(Long id) {
         return repository.findById(id);
     }
+    public List<Modulo> listarPorImplantacao(Long id) {
+        return repository.findByImplantacaoId(id);
+    }
 }
