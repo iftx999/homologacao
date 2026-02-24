@@ -34,7 +34,7 @@ public class Implantacao {
 
     public Implantacao() {
     }
-
+    //teste
     public Implantacao(Long id, String nome, LocalDate dataGoLive, StatusImplantacao status, String observacao, List<Icho> ichos) {
         this.id = id;
         this.nome = nome;
