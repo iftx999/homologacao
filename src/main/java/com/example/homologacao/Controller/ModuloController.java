@@ -18,13 +18,23 @@ public class ModuloController {
         this.service = service;
     }
 
+    // ➕ criar módulo
     @PostMapping
     public ResponseEntity<Modulo> criar(@RequestBody Modulo modulo) {
         return ResponseEntity.ok(service.salvar(modulo));
     }
 
+    // 📋 listar todos
     @GetMapping
     public ResponseEntity<List<Modulo>> listar() {
         return ResponseEntity.ok(service.listarTodos());
+    }
+
+    // 🔎 buscar por id  ⭐⭐⭐ ESTE FALTAVA
+    @GetMapping("/{id}")
+    public ResponseEntity<Modulo> buscarPorId(@PathVariable Long id) {
+        return service.buscarPorId(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }

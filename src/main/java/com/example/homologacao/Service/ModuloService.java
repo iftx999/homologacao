@@ -5,6 +5,7 @@ import com.example.homologacao.model.Modulo;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ModuloService {
@@ -21,5 +22,9 @@ public class ModuloService {
 
     public List<Modulo> listarTodos() {
         return repository.findAll();
+    }
+
+    public Optional<Modulo> buscarPorId(Long id) {
+        return repository.findById(id);
     }
 }
