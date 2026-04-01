@@ -35,10 +35,11 @@ public interface IchoRepository extends JpaRepository<Icho, Long> {
     AND i.status IN (:statusList)
 """, nativeQuery = true)
     List<Icho> buscarPendentesComGoLiveEstourado(@Param("statusList") List<String> statusList);
+
     @Query("""
     SELECT CASE WHEN COUNT(i) > 0 THEN true ELSE false END
     FROM Icho i
-    WHERE i.moduloId = :moduloId
+    WHERE i.modulo = :moduloId
     AND i.status IN (:statusList)
 """)
     boolean existsPendencias(
@@ -53,9 +54,9 @@ public interface IchoRepository extends JpaRepository<Icho, Long> {
     List<Icho> buscarPendencias(@Param("statusList") List<StatusIcho> statusList);
 
     @Query("""
-    SELECT i FROM Icho i
-    WHERE i.moduloId = :moduloId
-    AND i.status IN (:statusList)
+SELECT i FROM Icho i
+WHERE i.modulo.id = :moduloId
+AND i.status IN (:statusList)
 """)
     List<Icho> buscarPendenciasPorModulo(
             @Param("moduloId") Long moduloId,

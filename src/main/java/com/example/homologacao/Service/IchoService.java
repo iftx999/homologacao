@@ -51,5 +51,8 @@ public class IchoService {
         );
     }
 
+    public List<Icho> buscarPorModulo(Long moduloId) {
+        return repository.findByModuloId(moduloId);
+    }
 
 }

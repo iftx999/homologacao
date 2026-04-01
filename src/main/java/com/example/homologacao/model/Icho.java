@@ -24,9 +24,9 @@ public class Icho {
 
     private String descricao;
 
-    @Column(name = "modulo_id", nullable = false)
-    @JsonProperty("modulo_id")
-    private Long moduloId;
+    @ManyToOne
+    @JoinColumn(name = "modulo_id")
+    private Modulo modulo;
 
 
     @Enumerated(EnumType.STRING)
@@ -39,15 +39,26 @@ public class Icho {
 
     private String observacao;
 
-    public Icho(Long id, String titulo, String descricao, Long moduloId,  StatusIcho status, LocalDate dataTeste, String testadoPor, String observacao) {
+    public Icho(Long id, String titulo, String descricao, Modulo modulo,  StatusIcho status, LocalDate dataTeste, String testadoPor, String observacao) {
         this.id = id;
         this.titulo = titulo;
         this.descricao = descricao;
-        this.moduloId =moduloId;
+        this.modulo = modulo;
         this.status = status;
         this.dataTeste = dataTeste;
         this.testadoPor = testadoPor;
         this.observacao = observacao;
+    }
+
+    public Icho() {
+    }
+
+    public Modulo getModulo() {
+        return modulo;
+    }
+
+    public void setModulo(Modulo modulo) {
+        this.modulo = modulo;
     }
 
     public Long getId() {
@@ -82,13 +93,6 @@ public class Icho {
         this.status = status;
     }
 
-    public Long getModuloId() {
-        return moduloId;
-    }
-
-    public void setModuloId(Long moduloId) {
-        this.moduloId = moduloId;
-    }
 
     public LocalDate getDataTeste() {
         return dataTeste;

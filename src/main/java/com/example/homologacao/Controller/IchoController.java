@@ -39,4 +39,12 @@ public class IchoController {
     public ResponseEntity<List<Icho>> listarPendentes() {
         return ResponseEntity.ok(service.listarPendentes());
     }
+
+    @GetMapping("/modulo/{moduloId}")
+    public List<Icho> buscarPorModulo(@PathVariable Long moduloId) {
+        return service.buscarPorModulo(moduloId);
+    }
+
 }
+
+
