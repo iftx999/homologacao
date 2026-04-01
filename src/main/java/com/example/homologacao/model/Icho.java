@@ -3,6 +3,7 @@ package com.example.homologacao.model;
 
 
 import com.example.homologacao.model.Enum.StatusIcho;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -23,13 +24,10 @@ public class Icho {
 
     private String descricao;
 
-    @ManyToOne
-    @JoinColumn(name = "modulo_id", nullable = false)
-    private Modulo modulo;
+    @Column(name = "modulo_id", nullable = false)
+    @JsonProperty("modulo_id")
+    private Long moduloId;
 
-    @ManyToOne
-    @JoinColumn(name = "implantacao_id", nullable = false)
-    private Implantacao implantacao;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -41,12 +39,11 @@ public class Icho {
 
     private String observacao;
 
-    public Icho(Long id, String titulo, String descricao, Modulo modulo, Implantacao implantacao, StatusIcho status, LocalDate dataTeste, String testadoPor, String observacao) {
+    public Icho(Long id, String titulo, String descricao, Long moduloId,  StatusIcho status, LocalDate dataTeste, String testadoPor, String observacao) {
         this.id = id;
         this.titulo = titulo;
         this.descricao = descricao;
-        this.modulo = modulo;
-        this.implantacao = implantacao;
+        this.moduloId =moduloId;
         this.status = status;
         this.dataTeste = dataTeste;
         this.testadoPor = testadoPor;
@@ -77,14 +74,6 @@ public class Icho {
         this.descricao = descricao;
     }
 
-    public Modulo getModulo() {
-        return modulo;
-    }
-
-    public void setModulo(Modulo modulo) {
-        this.modulo = modulo;
-    }
-
     public StatusIcho getStatus() {
         return status;
     }
@@ -93,12 +82,12 @@ public class Icho {
         this.status = status;
     }
 
-    public Implantacao getImplantacao() {
-        return implantacao;
+    public Long getModuloId() {
+        return moduloId;
     }
 
-    public void setImplantacao(Implantacao implantacao) {
-        this.implantacao = implantacao;
+    public void setModuloId(Long moduloId) {
+        this.moduloId = moduloId;
     }
 
     public LocalDate getDataTeste() {

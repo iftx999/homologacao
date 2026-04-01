@@ -34,12 +34,6 @@ public class IchoController {
         return ResponseEntity.ok(service.atualizarStatus(id, status, usuario));
     }
 
-    @GetMapping("/implantacao/{implantacaoId}")
-    public ResponseEntity<List<Icho>> listarPorImplantacao(
-            @PathVariable Long implantacaoId) {
-
-        return ResponseEntity.ok(service.listarPorImplantacao(implantacaoId));
-    }
 
     @GetMapping("/pendentes")
     public ResponseEntity<List<Icho>> listarPendentes() {

@@ -18,11 +18,16 @@ public class ImplantacaoService {
     private final EmailService emailService;
 
     public ImplantacaoService(ImplantacaoRepository implantacaoRepository,
-                              IchoRepository ichoRepository, EmailService emailService) {
+                              IchoRepository ichoRepository,
+                              EmailService emailService) {
         this.implantacaoRepository = implantacaoRepository;
         this.ichoRepository = ichoRepository;
         this.emailService = emailService;
     }
+
+    // =========================
+    // CRUD
+    // =========================
 
     public Implantacao criar(Implantacao implantacao) {
         implantacao.setStatus(Model.Enum.StatusImplantacao.EM_ANDAMENTO);
@@ -34,47 +39,67 @@ public class ImplantacaoService {
                 .orElseThrow(() -> new RuntimeException("Implantação não encontrada"));
     }
 
+    public List<Implantacao> listar() {
+        return implantacaoRepository.findAll();
+    }
+
+    // =========================
+    // STATUS
+    // =========================
+
     public Model.Enum.StatusImplantacao avaliarStatus(Long implantacaoId) {
 
-        List<Icho> ichos = ichoRepository.findByImplantacaoId(implantacaoId);
+        Implantacao implantacao = buscarPorId(implantacaoId);
+
+        List<Icho> ichos = ichoRepository.findByModuloId(implantacaoId);
 
         boolean existeFalha = ichos.stream()
                 .anyMatch(i -> i.getStatus() == StatusIcho.FALHA);
 
-        boolean existePendente = ichos.stream()
+        boolean existePendencia = ichos.stream()
                 .anyMatch(i -> i.getStatus() != StatusIcho.OK);
 
         if (existeFalha) {
-            atualizarStatus(implantacaoId, Model.Enum.StatusImplantacao.REPROVADA);
+            atualizarStatus(implantacao, Model.Enum.StatusImplantacao.REPROVADA);
             return Model.Enum.StatusImplantacao.REPROVADA;
         }
 
-        if (existePendente) {
-            atualizarStatus(implantacaoId, Model.Enum.StatusImplantacao.EM_HOMOLOGACAO);
+        if (existePendencia) {
+            atualizarStatus(implantacao, Model.Enum.StatusImplantacao.EM_HOMOLOGACAO);
             return Model.Enum.StatusImplantacao.EM_HOMOLOGACAO;
         }
 
-        atualizarStatus(implantacaoId, Model.Enum.StatusImplantacao.APROVADA);
+        atualizarStatus(implantacao, Model.Enum.StatusImplantacao.APROVADA);
         return Model.Enum.StatusImplantacao.APROVADA;
     }
 
-    private void atualizarStatus(Long id, Model.Enum.StatusImplantacao status) {
-        Implantacao impl = buscarPorId(id);
-        impl.setStatus(status);
-        implantacaoRepository.save(impl);
+    private void atualizarStatus(Implantacao implantacao, Model.Enum.StatusImplantacao status) {
+        implantacao.setStatus(status);
+        implantacaoRepository.save(implantacao);
     }
 
+    // =========================
+    // GO LIVE CHECK
+    // =========================
+
     public boolean possuiPendenciasAposGoLive(Long implantacaoId) {
+
         Implantacao imp = buscarPorId(implantacaoId);
 
         if (LocalDate.now().isBefore(imp.getDataGoLive())) {
             return false;
         }
 
-        return ichoRepository.findByImplantacaoId(implantacaoId)
-                .stream()
-                .anyMatch(i -> i.getStatus() != StatusIcho.OK);
+        return ichoRepository.existsByModuloIdAndStatusIn(
+                implantacaoId,
+                List.of(StatusIcho.NAO_TESTADO, StatusIcho.PENDENTE)
+        );
     }
+
+    // =========================
+    // VALIDACAO (SCHEDULER)
+    // =========================
+
     public void validarImplantacoes() {
 
         List<Implantacao> implantacoes =
@@ -82,13 +107,12 @@ public class ImplantacaoService {
 
         for (Implantacao implantacao : implantacoes) {
 
-            // Se ainda não chegou no go-live → ignora
             if (LocalDate.now().isBefore(implantacao.getDataGoLive())) {
                 continue;
             }
 
             boolean possuiPendencias =
-                    ichoRepository.existsByImplantacaoIdAndStatusIn(
+                    ichoRepository.existsByModuloIdAndStatusIn(
                             implantacao.getId(),
                             List.of(StatusIcho.NAO_TESTADO, StatusIcho.PENDENTE)
                     );
@@ -102,6 +126,10 @@ public class ImplantacaoService {
             implantacaoRepository.save(implantacao);
         }
     }
+
+    // =========================
+    // EMAIL
+    // =========================
 
     private void enviarEmailPendencia(Implantacao implantacao) {
 
@@ -124,8 +152,4 @@ public class ImplantacaoService {
                 corpo
         );
     }
-    public List<Implantacao> listar() {
-        return implantacaoRepository.findAll();
-    }
-
 }

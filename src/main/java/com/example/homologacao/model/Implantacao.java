@@ -29,19 +29,15 @@ public class Implantacao {
 
     private String observacao;
 
-    @OneToMany(mappedBy = "implantacao", cascade = CascadeType.ALL)
-    private List<Icho> ichos;
-
     public Implantacao() {
     }
     //teste
-    public Implantacao(Long id, String nome, LocalDate dataGoLive, StatusImplantacao status, String observacao, List<Icho> ichos) {
+    public Implantacao(Long id, String nome, LocalDate dataGoLive, StatusImplantacao status, String observacao) {
         this.id = id;
         this.nome = nome;
         this.dataGoLive = dataGoLive;
         this.status = status;
         this.observacao = observacao;
-        this.ichos = ichos;
     }
 
     public Long getId() {
@@ -84,11 +80,5 @@ public class Implantacao {
         this.observacao = observacao;
     }
 
-    public List<Icho> getIchos() {
-        return ichos;
-    }
 
-    public void setIchos(List<Icho> ichos) {
-        this.ichos = ichos;
-    }
 }

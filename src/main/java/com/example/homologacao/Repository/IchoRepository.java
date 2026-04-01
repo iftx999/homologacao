@@ -7,60 +7,58 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @Repository
 public interface IchoRepository extends JpaRepository<Icho, Long> {
 
-    // Buscar ICHOs por implantação
-    List<Icho> findByImplantacaoId(Long implantacaoId);
+    // =========================
+    // MODULO
+    // =========================
 
-    // Buscar ICHOs por status
-    List<Icho> findByStatus(StatusIcho status);
+    List<Icho> findByModuloIdAndStatus(Long moduloId, StatusIcho status);
 
-    // ICHOs pendentes ou não testados com go-live vencido
-    @Query("""
-        SELECT i FROM Icho i
-        WHERE i.implantacao.dataGoLive <= CURRENT_DATE
-        AND i.status IN ('NAO_TESTADO', 'PENDENTE')
-    """)
-    List<Icho> buscarPendentesComGoLiveEstourado();
+    boolean existsByModuloIdAndStatusIn(Long moduloId, List<StatusIcho> status);
 
-    // ICHOs de um módulo específico
-    List<Icho> findByModuloId(Long moduloId);
+    List<Icho> findByModuloId(Long moduloid);
 
-    // ICHOs por implantação e status
-    List<Icho> findByImplantacaoIdAndStatus(Long implantacaoId, StatusIcho status);
+    // =========================
+    // PENDÊNCIAS
+    // =========================
 
-
-    boolean existsByImplantacaoIdAndStatusIn(
-            Long implantacaoId,
-            List<StatusIcho> status
-    );
-
-    // Para scheduler
+    @Query(value = """
+    SELECT i.*
+    FROM icho i
+    INNER JOIN modulo m ON m.id = i.modulo_id
+    INNER JOIN implantacao imp ON imp.id = m.implantacao_id
+    WHERE imp.data_go_live <= CURRENT_DATE
+    AND i.status IN (:statusList)
+""", nativeQuery = true)
+    List<Icho> buscarPendentesComGoLiveEstourado(@Param("statusList") List<String> statusList);
     @Query("""
     SELECT CASE WHEN COUNT(i) > 0 THEN true ELSE false END
     FROM Icho i
-    WHERE i.implantacao.id = :implantacaoId
-    AND i.status IN ('PENDENTE', 'NAO_TESTADO')
+    WHERE i.moduloId = :moduloId
+    AND i.status IN (:statusList)
 """)
-    boolean existsPendencias(@Param("implantacaoId") Long implantacaoId);
+    boolean existsPendencias(
+            @Param("moduloId") Long moduloId,
+            @Param("statusList") List<StatusIcho> statusList
+    );
 
-    // Para tela
+    @Query("""
+        SELECT i FROM Icho i
+        WHERE i.status IN (:statusList)
+    """)
+    List<Icho> buscarPendencias(@Param("statusList") List<StatusIcho> statusList);
+
     @Query("""
     SELECT i FROM Icho i
-    WHERE i.status IN ('PENDENTE', 'NAO_TESTADO')
+    WHERE i.moduloId = :moduloId
+    AND i.status IN (:statusList)
 """)
-    List<Icho> buscarPendencias();
-
-    // Para relatório
-    @Query("""
-    SELECT i FROM Icho i
-    WHERE i.implantacao.id = :implantacaoId
-    AND i.status IN ('PENDENTE', 'NAO_TESTADO')
-""")
-    List<Icho> buscarPendenciasPorImplantacao(@Param("implantacaoId") Long implantacaoId);
-
+    List<Icho> buscarPendenciasPorModulo(
+            @Param("moduloId") Long moduloId,
+            @Param("statusList") List<StatusIcho> statusList
+    );
 }

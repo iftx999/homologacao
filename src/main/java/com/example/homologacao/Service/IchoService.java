@@ -42,30 +42,14 @@ public class IchoService {
         return repository.save(icho);
     }
 
-    public List<Icho> listarPorImplantacao(Long implantacaoId) {
-        return repository.findByImplantacaoId(implantacaoId);
-    }
-
     public List<Icho> listarPendentes() {
-        return repository.buscarPendentesComGoLiveEstourado();
+        return repository.buscarPendentesComGoLiveEstourado(
+                List.of(StatusIcho.PENDENTE, StatusIcho.NAO_TESTADO)
+                        .stream()
+                        .map(StatusIcho::name)
+                        .toList()
+        );
     }
 
-    public boolean implantacaoEstaValida(Long implantacaoId) {
 
-        Implantacao implantacao = implantacaoRepository.findById(implantacaoId)
-                .orElseThrow(() -> new RuntimeException("Implantação não encontrada"));
-
-        // Se ainda não chegou no go-live, não bloqueia
-        if (LocalDate.now().isBefore(implantacao.getDataGoLive())) {
-            return true;
-        }
-
-        // Verifica se existe ICHO não testado
-        return ichoRepository.findByImplantacaoId(implantacaoId)
-                .stream()
-                .noneMatch(i ->
-                        i.getStatus() == StatusIcho.NAO_TESTADO ||
-                                i.getStatus() == StatusIcho.PENDENTE
-                );
-    }
 }
