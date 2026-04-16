@@ -1,5 +1,6 @@
 package com.example.homologacao.Controller;
 
+import com.example.homologacao.Service.JwtService;
 import com.example.homologacao.model.Usuario;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
@@ -18,16 +21,21 @@ public class AuthController {
     @Autowired
     private AuthenticationManager authenticationManager;
 
-    @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody Usuario usuario) {
+    @Autowired
+    private JwtService jwtService;
 
-        Authentication authentication = authenticationManager.authenticate(
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody Usuario usuario) {
+
+        authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         usuario.getUsername(),
                         usuario.getPassword()
                 )
         );
 
-        return ResponseEntity.ok("Login realizado com sucesso");
+        String token = jwtService.gerarToken(usuario.getUsername());
+
+        return ResponseEntity.ok(Map.of("token", token));
     }
 }
