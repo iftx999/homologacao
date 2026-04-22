@@ -29,11 +29,9 @@ public class SecurityConfig {
     @Autowired
     private CustomUserDetailsService userDetailsService;
 
-    @Bean
-    public JwtFilter jwtFilter(JwtService jwtService,
-                               CustomUserDetailsService userDetailsService) {
-        return new JwtFilter(jwtService, userDetailsService);
-    }
+    @Autowired
+    private JwtFilter jwtFilter;
+
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
@@ -44,28 +42,24 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, JwtFilter jwtFilter) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
+        System.out.println("🔥 JWT FILTER EXECUTANDO");
 
         return http
                 .cors(cors -> {})
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-
-                        // 🔓 libera preflight (ESSENCIAL)
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
-                        // 🔓 libera login
                         .requestMatchers("/auth/**").permitAll()
-
-                        // 🔓 (opcional)
                         .requestMatchers("/usuarios/**").permitAll()
-
-                        // 🔒 resto protegido
                         .anyRequest().authenticated()
+
                 )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
+
     }
 
     @Bean
