@@ -41,9 +41,11 @@ public class JwtFilter extends OncePerRequestFilter {
         System.out.println("PATH: " + path);
         System.out.println("AUTH (início): " + SecurityContextHolder.getContext().getAuthentication());
 
-        // 🚫 IGNORA ROTAS DE AUTH (ROBUSTO)
-        if (path.contains("/api/auth")) {
-            System.out.println("🔓 Rota de auth ignorada");
+        // ✅ IGNORA ROTAS PÚBLICAS
+        if (path.startsWith("/api/auth") ||
+                (path.equals("/api/usuarios") && request.getMethod().equalsIgnoreCase("POST"))) {
+
+            System.out.println("Rota pública ignorada");
             filterChain.doFilter(request, response);
             return;
         }
@@ -51,8 +53,9 @@ public class JwtFilter extends OncePerRequestFilter {
         String authHeader = request.getHeader("Authorization");
         System.out.println("HEADER AUTHORIZATION: " + authHeader);
 
+        // ✅ Se não tem token, só segue (Spring vai barrar depois)
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            System.out.println("❌ Token não enviado ou inválido");
+            System.out.println("Token não enviado");
             filterChain.doFilter(request, response);
             return;
         }
@@ -80,14 +83,14 @@ public class JwtFilter extends OncePerRequestFilter {
                     auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(auth);
 
-                    System.out.println("✅ AUTH OK");
+                    System.out.println("AUTH OK");
                 } else {
-                    System.out.println("❌ TOKEN INVÁLIDO");
+                    System.out.println("TOKEN INVÁLIDO");
                 }
             }
 
         } catch (Exception e) {
-            System.out.println("❌ JWT error: " + e.getMessage());
+            System.out.println("JWT error: " + e.getMessage());
             SecurityContextHolder.clearContext();
         }
 
