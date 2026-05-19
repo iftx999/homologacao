@@ -4,5 +4,7 @@ public enum StatusImplantacao {
     EM_ANDAMENTO,
     EM_HOMOLOGACAO,
     APROVADA,
-    REPROVADA
+    REPROVADA,
+    FINALIZADA,
+    CANCELADA
 }

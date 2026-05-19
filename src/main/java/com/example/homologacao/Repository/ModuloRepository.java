@@ -10,4 +10,6 @@ import java.util.List;
 public interface ModuloRepository extends JpaRepository<Modulo, Long> {
 
     List<Modulo> findByImplantacaoId(Long id);
+
+    long countByImplantacaoIdIn(List<Long> implantacaoIds);
 }

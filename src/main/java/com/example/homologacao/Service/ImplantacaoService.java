@@ -1,11 +1,18 @@
 package com.example.homologacao.Service;
 
+import com.example.homologacao.Repository.GrupoUsuarioRepository;
 import com.example.homologacao.Repository.IchoRepository;
 import com.example.homologacao.Repository.ImplantacaoRepository;
+import com.example.homologacao.Repository.ModuloRepository;
+import com.example.homologacao.model.Enum.AcaoPermissao;
+import com.example.homologacao.model.Enum.RecursoSistema;
 import com.example.homologacao.model.Enum.StatusIcho;
 import com.example.homologacao.model.Icho;
 import com.example.homologacao.model.Implantacao;
+import jakarta.transaction.Transactional;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -15,14 +22,23 @@ public class ImplantacaoService {
 
     private final ImplantacaoRepository implantacaoRepository;
     private final IchoRepository ichoRepository;
+    private final ModuloRepository moduloRepository;
+    private final GrupoUsuarioRepository grupoUsuarioRepository;
     private final EmailService emailService;
+    private final PermissaoService permissaoService;
 
     public ImplantacaoService(ImplantacaoRepository implantacaoRepository,
                               IchoRepository ichoRepository,
-                              EmailService emailService) {
+                              ModuloRepository moduloRepository,
+                              GrupoUsuarioRepository grupoUsuarioRepository,
+                              EmailService emailService,
+                              PermissaoService permissaoService) {
         this.implantacaoRepository = implantacaoRepository;
         this.ichoRepository = ichoRepository;
+        this.moduloRepository = moduloRepository;
+        this.grupoUsuarioRepository = grupoUsuarioRepository;
         this.emailService = emailService;
+        this.permissaoService = permissaoService;
     }
 
     // =========================
@@ -30,17 +46,64 @@ public class ImplantacaoService {
     // =========================
 
     public Implantacao criar(Implantacao implantacao) {
+        permissaoService.exigirPermissaoGeral(RecursoSistema.IMPLANTACOES, AcaoPermissao.CRIAR);
         implantacao.setStatus(Model.Enum.StatusImplantacao.EM_ANDAMENTO);
         return implantacaoRepository.save(implantacao);
     }
 
     public Implantacao buscarPorId(Long id) {
+        permissaoService.exigirPermissaoNaImplantacao(id, RecursoSistema.IMPLANTACOES, AcaoPermissao.LER);
         return implantacaoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Implantação não encontrada"));
     }
 
     public List<Implantacao> listar() {
-        return implantacaoRepository.findAll();
+        List<Long> idsPermitidos = permissaoService.buscarImplantacaoIdsPermitidas(
+                RecursoSistema.IMPLANTACOES,
+                AcaoPermissao.LER
+        );
+
+        if (idsPermitidos == null) {
+            return implantacaoRepository.findAll();
+        }
+
+        if (idsPermitidos.isEmpty()) {
+            return List.of();
+        }
+
+        return implantacaoRepository.findAllById(idsPermitidos);
+    }
+
+    public Implantacao atualizar(Long id, Implantacao payload) {
+        permissaoService.exigirPermissaoNaImplantacao(id, RecursoSistema.IMPLANTACOES, AcaoPermissao.ALTERAR);
+
+        Implantacao implantacao = implantacaoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Implantação não encontrada"));
+
+        implantacao.setNome(payload.getNome());
+        implantacao.setDataGoLive(payload.getDataGoLive());
+        implantacao.setObservacao(payload.getObservacao());
+
+        return implantacaoRepository.save(implantacao);
+    }
+
+    @Transactional
+    public void deletar(Long id) {
+        permissaoService.exigirPermissaoNaImplantacao(id, RecursoSistema.IMPLANTACOES, AcaoPermissao.DELETAR);
+
+        Implantacao implantacao = implantacaoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Implantação não encontrada"));
+
+        if (ichoRepository.existsByModuloImplantacaoId(id)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Implantação possui ICHOs cadastrados e não pode ser deletada"
+            );
+        }
+
+        grupoUsuarioRepository.deleteAll(grupoUsuarioRepository.findByImplantacaoId(id));
+        moduloRepository.deleteAll(moduloRepository.findByImplantacaoId(id));
+        implantacaoRepository.delete(implantacao);
     }
 
     // =========================
@@ -49,9 +112,12 @@ public class ImplantacaoService {
 
     public Model.Enum.StatusImplantacao avaliarStatus(Long implantacaoId) {
 
-        Implantacao implantacao = buscarPorId(implantacaoId);
+        permissaoService.exigirPermissaoNaImplantacao(implantacaoId, RecursoSistema.IMPLANTACOES, AcaoPermissao.LER);
 
-        List<Icho> ichos = ichoRepository.findByModuloId(implantacaoId);
+        Implantacao implantacao = implantacaoRepository.findById(implantacaoId)
+                .orElseThrow(() -> new RuntimeException("Implantação não encontrada"));
+
+        List<Icho> ichos = ichoRepository.findByModuloImplantacaoId(implantacaoId);
 
         boolean existeFalha = ichos.stream()
                 .anyMatch(i -> i.getStatus() == StatusIcho.FALHA);
@@ -84,15 +150,18 @@ public class ImplantacaoService {
 
     public boolean possuiPendenciasAposGoLive(Long implantacaoId) {
 
-        Implantacao imp = buscarPorId(implantacaoId);
+        permissaoService.exigirPermissaoNaImplantacao(implantacaoId, RecursoSistema.IMPLANTACOES, AcaoPermissao.LER);
+
+        Implantacao imp = implantacaoRepository.findById(implantacaoId)
+                .orElseThrow(() -> new RuntimeException("Implantação não encontrada"));
 
         if (LocalDate.now().isBefore(imp.getDataGoLive())) {
             return false;
         }
 
-        return ichoRepository.existsByModuloIdAndStatusIn(
+        return ichoRepository.existsByModuloImplantacaoIdAndStatusIn(
                 implantacaoId,
-                List.of(StatusIcho.NAO_TESTADO, StatusIcho.PENDENTE)
+                statusComPendenciaAposGoLive()
         );
     }
 
@@ -112,9 +181,9 @@ public class ImplantacaoService {
             }
 
             boolean possuiPendencias =
-                    ichoRepository.existsByModuloIdAndStatusIn(
+                    ichoRepository.existsByModuloImplantacaoIdAndStatusIn(
                             implantacao.getId(),
-                            List.of(StatusIcho.NAO_TESTADO, StatusIcho.PENDENTE)
+                            statusComPendenciaAposGoLive()
                     );
 
             if (possuiPendencias) {
@@ -125,6 +194,17 @@ public class ImplantacaoService {
 
             implantacaoRepository.save(implantacao);
         }
+    }
+
+    private List<StatusIcho> statusComPendenciaAposGoLive() {
+        return List.of(
+                StatusIcho.NAO_TESTADO,
+                StatusIcho.EM_TESTE,
+                StatusIcho.PENDENTE,
+                StatusIcho.FALHA,
+                StatusIcho.EM_CORRECAO,
+                StatusIcho.RETESTE
+        );
     }
 
     // =========================

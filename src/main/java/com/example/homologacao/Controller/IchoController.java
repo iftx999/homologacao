@@ -4,6 +4,7 @@ package com.example.homologacao.Controller;
 import com.example.homologacao.Service.IchoService;
 import com.example.homologacao.model.Enum.StatusIcho;
 import com.example.homologacao.model.Icho;
+import com.example.homologacao.model.IchoHistorico;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,9 +30,18 @@ public class IchoController {
     public ResponseEntity<Icho> atualizarStatus(
             @PathVariable Long id,
             @RequestParam StatusIcho status,
-            @RequestParam String usuario) {
+            @RequestParam(required = false) String usuario,
+            @RequestParam(required = false) String observacao) {
 
-        return ResponseEntity.ok(service.atualizarStatus(id, status, usuario));
+        return ResponseEntity.ok(service.atualizarStatus(id, status, usuario, observacao));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Icho> atualizar(
+            @PathVariable Long id,
+            @RequestBody Icho payload) {
+
+        return ResponseEntity.ok(service.atualizar(id, payload));
     }
 
 
@@ -45,6 +55,9 @@ public class IchoController {
         return service.buscarPorModulo(moduloId);
     }
 
+    @GetMapping("/{id}/historico")
+    public ResponseEntity<List<IchoHistorico>> listarHistorico(@PathVariable Long id) {
+        return ResponseEntity.ok(service.listarHistorico(id));
+    }
+
 }
-
-

@@ -44,4 +44,16 @@ public class ImplantacaoController {
     public ResponseEntity<List<Implantacao>> listar() {
         return ResponseEntity.ok(service.listar());
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Implantacao> atualizar(@PathVariable Long id,
+                                                 @RequestBody Implantacao implantacao) {
+        return ResponseEntity.ok(service.atualizar(id, implantacao));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletar(@PathVariable Long id) {
+        service.deletar(id);
+        return ResponseEntity.noContent().build();
+    }
 }

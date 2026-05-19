@@ -22,6 +22,37 @@ public interface IchoRepository extends JpaRepository<Icho, Long> {
 
     List<Icho> findByModuloId(Long moduloid);
 
+    List<Icho> findByModuloImplantacaoId(Long implantacaoId);
+
+    boolean existsByModuloImplantacaoId(Long implantacaoId);
+
+    boolean existsByModuloImplantacaoIdAndStatusIn(Long implantacaoId, List<StatusIcho> status);
+
+    long countByModuloImplantacaoIdIn(List<Long> implantacaoIds);
+
+    long countByStatus(StatusIcho status);
+
+    long countByStatusIn(List<StatusIcho> status);
+
+    long countByModuloImplantacaoIdInAndStatus(List<Long> implantacaoIds, StatusIcho status);
+
+    long countByModuloImplantacaoIdInAndStatusIn(List<Long> implantacaoIds, List<StatusIcho> status);
+
+    @Query("""
+            select i.status, count(i)
+            from Icho i
+            group by i.status
+            """)
+    List<Object[]> countPorStatus();
+
+    @Query("""
+            select i.status, count(i)
+            from Icho i
+            where i.modulo.implantacao.id in :implantacaoIds
+            group by i.status
+            """)
+    List<Object[]> countPorStatusByImplantacaoIdIn(List<Long> implantacaoIds);
+
     // =========================
     // PENDÊNCIAS
     // =========================
@@ -30,7 +61,7 @@ public interface IchoRepository extends JpaRepository<Icho, Long> {
     SELECT i.*
     FROM icho i
     INNER JOIN modulo m ON m.id = i.modulo_id
-    INNER JOIN implantacao imp ON imp.id = m.implantacao_id
+    INNER JOIN implantacao imp ON imp.id = m.id_implantacao
     WHERE imp.data_go_live <= CURRENT_DATE
     AND i.status IN (:statusList)
 """, nativeQuery = true)
