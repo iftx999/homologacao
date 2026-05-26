@@ -30,9 +30,6 @@ public class JwtService {
             );
         }
 
-        System.out.println("JWT secret length: " + secret.length());
-
-
         this.signingKey   = Keys.hmacShaKeyFor(keyBytes);
         this.expirationMs = expirationMs;
     }

@@ -2,7 +2,12 @@ package com.example.homologacao.Controller;
 
 
 import com.example.homologacao.Service.ImplantacaoService;
+import com.example.homologacao.Service.RelatorioImplantacaoPdfService;
+import com.example.homologacao.dto.UsuarioImplantacaoResponse;
+import com.example.homologacao.model.Enum.StatusImplantacao;
 import com.example.homologacao.model.Implantacao;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,9 +20,12 @@ import java.util.List;
 public class ImplantacaoController {
 
     private final ImplantacaoService service;
+    private final RelatorioImplantacaoPdfService relatorioPdfService;
 
-    public ImplantacaoController(ImplantacaoService service) {
+    public ImplantacaoController(ImplantacaoService service,
+                                 RelatorioImplantacaoPdfService relatorioPdfService) {
         this.service = service;
+        this.relatorioPdfService = relatorioPdfService;
     }
 
     @PostMapping
@@ -31,13 +39,26 @@ public class ImplantacaoController {
     }
 
     @GetMapping("/{id}/status")
-    public ResponseEntity<Model.Enum.StatusImplantacao> status(@PathVariable Long id) {
+    public ResponseEntity<StatusImplantacao> status(@PathVariable Long id) {
         return ResponseEntity.ok(service.avaliarStatus(id));
     }
 
     @GetMapping("/{id}/pendencias")
     public ResponseEntity<Boolean> possuiPendencias(@PathVariable Long id) {
         return ResponseEntity.ok(service.possuiPendenciasAposGoLive(id));
+    }
+
+    @GetMapping("/{id}/usuarios")
+    public ResponseEntity<List<UsuarioImplantacaoResponse>> listarUsuariosDisponiveisParaTeste(@PathVariable Long id) {
+        return ResponseEntity.ok(service.listarUsuariosDisponiveisParaTeste(id));
+    }
+
+    @GetMapping(value = "/{id}/relatorio.pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> baixarRelatorio(@PathVariable Long id) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"implantacao-" + id + "-relatorio.pdf\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(relatorioPdfService.gerar(id));
     }
 
     @GetMapping

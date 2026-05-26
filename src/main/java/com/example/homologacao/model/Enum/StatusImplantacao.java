@@ -1,4 +1,4 @@
-package Model.Enum;
+package com.example.homologacao.model.Enum;
 
 public enum StatusImplantacao {
     EM_ANDAMENTO,

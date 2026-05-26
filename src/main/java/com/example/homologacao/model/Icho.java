@@ -3,6 +3,7 @@ package com.example.homologacao.model;
 
 
 import com.example.homologacao.model.Enum.StatusIcho;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
@@ -36,6 +37,14 @@ public class Icho {
     private LocalDate dataTeste;
 
     private String testadoPor;
+
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "testado_por_usuario_id")
+    private Usuario testadoPorUsuario;
+
+    @Transient
+    private Long testadoPorUsuarioId;
 
     private String observacao;
 
@@ -108,6 +117,37 @@ public class Icho {
 
     public void setTestadoPor(String testadoPor) {
         this.testadoPor = testadoPor;
+    }
+
+    public Usuario getTestadoPorUsuario() {
+        return testadoPorUsuario;
+    }
+
+    public void setTestadoPorUsuario(Usuario testadoPorUsuario) {
+        this.testadoPorUsuario = testadoPorUsuario;
+        if (testadoPorUsuario != null) {
+            this.testadoPorUsuarioId = testadoPorUsuario.getId();
+        }
+    }
+
+    public Long getTestadoPorUsuarioId() {
+        if (testadoPorUsuario != null) {
+            return testadoPorUsuario.getId();
+        }
+        return testadoPorUsuarioId;
+    }
+
+    public void setTestadoPorUsuarioId(Long testadoPorUsuarioId) {
+        this.testadoPorUsuarioId = testadoPorUsuarioId;
+    }
+
+    public String getTestadoPorNome() {
+        if (testadoPorUsuario == null) {
+            return null;
+        }
+        return testadoPorUsuario.getNome() == null || testadoPorUsuario.getNome().isBlank()
+                ? testadoPorUsuario.getUsername()
+                : testadoPorUsuario.getNome();
     }
 
     public String getObservacao() {

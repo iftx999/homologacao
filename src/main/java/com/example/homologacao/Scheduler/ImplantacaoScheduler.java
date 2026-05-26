@@ -13,8 +13,9 @@ public class ImplantacaoScheduler {
         this.implantacaoService = implantacaoService;
     }
 
-    // Executa todo dia às 08:00
-    @Scheduled(cron = "0 0 8 * * ?")
+    // Executa todo dia as 08:00 por padrao.
+    @Scheduled(cron = "${app.implantacao.validacao.cron:0 0 8 * * ?}",
+            zone = "${app.implantacao.validacao.zone:America/Sao_Paulo}")
     public void validarImplantacoes() {
         implantacaoService.validarImplantacoes();
     }

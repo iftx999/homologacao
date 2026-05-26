@@ -1,6 +1,6 @@
 package com.example.homologacao.model;
 
-import Model.Enum.StatusImplantacao;
+import com.example.homologacao.model.Enum.StatusImplantacao;
 import jakarta.persistence.*;
 import lombok.*;
 

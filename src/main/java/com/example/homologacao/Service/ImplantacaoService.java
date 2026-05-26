@@ -1,44 +1,63 @@
 package com.example.homologacao.Service;
 
+import com.example.homologacao.Repository.GrupoUsuarioMembroRepository;
 import com.example.homologacao.Repository.GrupoUsuarioRepository;
 import com.example.homologacao.Repository.IchoRepository;
 import com.example.homologacao.Repository.ImplantacaoRepository;
 import com.example.homologacao.Repository.ModuloRepository;
+import com.example.homologacao.dto.UsuarioImplantacaoResponse;
 import com.example.homologacao.model.Enum.AcaoPermissao;
 import com.example.homologacao.model.Enum.RecursoSistema;
 import com.example.homologacao.model.Enum.StatusIcho;
+import com.example.homologacao.model.GrupoUsuarioMembro;
+import com.example.homologacao.model.Enum.StatusImplantacao;
 import com.example.homologacao.model.Icho;
 import com.example.homologacao.model.Implantacao;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.mail.MailException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class ImplantacaoService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ImplantacaoService.class);
 
     private final ImplantacaoRepository implantacaoRepository;
     private final IchoRepository ichoRepository;
     private final ModuloRepository moduloRepository;
     private final GrupoUsuarioRepository grupoUsuarioRepository;
+    private final GrupoUsuarioMembroRepository membroRepository;
     private final EmailService emailService;
     private final PermissaoService permissaoService;
+    private final String destinatariosAlertaImplantacao;
 
     public ImplantacaoService(ImplantacaoRepository implantacaoRepository,
                               IchoRepository ichoRepository,
                               ModuloRepository moduloRepository,
                               GrupoUsuarioRepository grupoUsuarioRepository,
+                              GrupoUsuarioMembroRepository membroRepository,
                               EmailService emailService,
-                              PermissaoService permissaoService) {
+                              PermissaoService permissaoService,
+                              @Value("${app.email.alertas.implantacao.destinatarios:}") String destinatariosAlertaImplantacao) {
         this.implantacaoRepository = implantacaoRepository;
         this.ichoRepository = ichoRepository;
         this.moduloRepository = moduloRepository;
         this.grupoUsuarioRepository = grupoUsuarioRepository;
+        this.membroRepository = membroRepository;
         this.emailService = emailService;
         this.permissaoService = permissaoService;
+        this.destinatariosAlertaImplantacao = destinatariosAlertaImplantacao;
     }
 
     // =========================
@@ -47,7 +66,7 @@ public class ImplantacaoService {
 
     public Implantacao criar(Implantacao implantacao) {
         permissaoService.exigirPermissaoGeral(RecursoSistema.IMPLANTACOES, AcaoPermissao.CRIAR);
-        implantacao.setStatus(Model.Enum.StatusImplantacao.EM_ANDAMENTO);
+        implantacao.setStatus(StatusImplantacao.EM_ANDAMENTO);
         return implantacaoRepository.save(implantacao);
     }
 
@@ -72,6 +91,30 @@ public class ImplantacaoService {
         }
 
         return implantacaoRepository.findAllById(idsPermitidos);
+    }
+
+    public List<UsuarioImplantacaoResponse> listarUsuariosDisponiveisParaTeste(Long implantacaoId) {
+        permissaoService.exigirPermissaoNaImplantacao(
+                implantacaoId,
+                RecursoSistema.IMPLANTACOES,
+                AcaoPermissao.LER
+        );
+
+        if (!implantacaoRepository.existsById(implantacaoId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Implantação não encontrada");
+        }
+
+        Map<Long, UsuarioImplantacaoResponse> usuariosPorId = new LinkedHashMap<>();
+        for (GrupoUsuarioMembro membro : membroRepository.findByGrupoImplantacaoId(implantacaoId)) {
+            if (membro.getUsuario() == null || membro.getUsuario().getId() == null) {
+                continue;
+            }
+            usuariosPorId.putIfAbsent(membro.getUsuario().getId(), UsuarioImplantacaoResponse.fromMembro(membro));
+        }
+
+        return usuariosPorId.values().stream()
+                .sorted(Comparator.comparing(this::nomeOrdenacao, String.CASE_INSENSITIVE_ORDER))
+                .toList();
     }
 
     public Implantacao atualizar(Long id, Implantacao payload) {
@@ -110,7 +153,7 @@ public class ImplantacaoService {
     // STATUS
     // =========================
 
-    public Model.Enum.StatusImplantacao avaliarStatus(Long implantacaoId) {
+    public StatusImplantacao avaliarStatus(Long implantacaoId) {
 
         permissaoService.exigirPermissaoNaImplantacao(implantacaoId, RecursoSistema.IMPLANTACOES, AcaoPermissao.LER);
 
@@ -126,20 +169,20 @@ public class ImplantacaoService {
                 .anyMatch(i -> i.getStatus() != StatusIcho.OK);
 
         if (existeFalha) {
-            atualizarStatus(implantacao, Model.Enum.StatusImplantacao.REPROVADA);
-            return Model.Enum.StatusImplantacao.REPROVADA;
+            atualizarStatus(implantacao, StatusImplantacao.REPROVADA);
+            return StatusImplantacao.REPROVADA;
         }
 
         if (existePendencia) {
-            atualizarStatus(implantacao, Model.Enum.StatusImplantacao.EM_HOMOLOGACAO);
-            return Model.Enum.StatusImplantacao.EM_HOMOLOGACAO;
+            atualizarStatus(implantacao, StatusImplantacao.EM_HOMOLOGACAO);
+            return StatusImplantacao.EM_HOMOLOGACAO;
         }
 
-        atualizarStatus(implantacao, Model.Enum.StatusImplantacao.APROVADA);
-        return Model.Enum.StatusImplantacao.APROVADA;
+        atualizarStatus(implantacao, StatusImplantacao.APROVADA);
+        return StatusImplantacao.APROVADA;
     }
 
-    private void atualizarStatus(Implantacao implantacao, Model.Enum.StatusImplantacao status) {
+    private void atualizarStatus(Implantacao implantacao, StatusImplantacao status) {
         implantacao.setStatus(status);
         implantacaoRepository.save(implantacao);
     }
@@ -172,7 +215,7 @@ public class ImplantacaoService {
     public void validarImplantacoes() {
 
         List<Implantacao> implantacoes =
-                implantacaoRepository.findByStatus(Model.Enum.StatusImplantacao.EM_HOMOLOGACAO);
+                implantacaoRepository.findByStatus(StatusImplantacao.EM_HOMOLOGACAO);
 
         for (Implantacao implantacao : implantacoes) {
 
@@ -187,9 +230,10 @@ public class ImplantacaoService {
                     );
 
             if (possuiPendencias) {
-                implantacao.setStatus(Model.Enum.StatusImplantacao.REPROVADA);
+                implantacao.setStatus(StatusImplantacao.REPROVADA);
+                enviarEmailPendencia(implantacao);
             } else {
-                implantacao.setStatus(Model.Enum.StatusImplantacao.APROVADA);
+                implantacao.setStatus(StatusImplantacao.APROVADA);
             }
 
             implantacaoRepository.save(implantacao);
@@ -205,6 +249,16 @@ public class ImplantacaoService {
                 StatusIcho.EM_CORRECAO,
                 StatusIcho.RETESTE
         );
+    }
+
+    private String nomeOrdenacao(UsuarioImplantacaoResponse usuario) {
+        if (usuario.nome() != null && !usuario.nome().isBlank()) {
+            return usuario.nome();
+        }
+        if (usuario.username() != null && !usuario.username().isBlank()) {
+            return usuario.username();
+        }
+        return "";
     }
 
     // =========================
@@ -226,10 +280,14 @@ public class ImplantacaoService {
                 implantacao.getDataGoLive()
         );
 
-        emailService.enviarEmail(
-                "ti@empresa.com",
-                "🚨 Implantação NÃO homologada",
-                corpo
-        );
+        try {
+            emailService.enviarEmail(
+                    destinatariosAlertaImplantacao,
+                    "Implantacao nao homologada",
+                    corpo
+            );
+        } catch (IllegalArgumentException | MailException e) {
+            logger.error("Falha ao enviar alerta da implantacao {}", implantacao.getId(), e);
+        }
     }
 }

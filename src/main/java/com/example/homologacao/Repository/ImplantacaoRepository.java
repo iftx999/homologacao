@@ -1,5 +1,6 @@
 package com.example.homologacao.Repository;
 
+import com.example.homologacao.model.Enum.StatusImplantacao;
 import com.example.homologacao.model.Implantacao;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -11,13 +12,13 @@ import java.util.List;
 public interface ImplantacaoRepository extends JpaRepository<Implantacao, Long> {
 
 
-    List<Implantacao> findByStatus(Model.Enum.StatusImplantacao status);
+    List<Implantacao> findByStatus(StatusImplantacao status);
 
-    long countByStatus(Model.Enum.StatusImplantacao status);
+    long countByStatus(StatusImplantacao status);
 
     long countByIdIn(List<Long> ids);
 
-    long countByIdInAndStatus(List<Long> ids, Model.Enum.StatusImplantacao status);
+    long countByIdInAndStatus(List<Long> ids, StatusImplantacao status);
 
     @Query("""
             select i.status, count(i)

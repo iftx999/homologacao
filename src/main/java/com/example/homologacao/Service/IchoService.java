@@ -1,11 +1,14 @@
 package com.example.homologacao.Service;
 
+import com.example.homologacao.Repository.GrupoUsuarioMembroRepository;
 import com.example.homologacao.Repository.IchoRepository;
 import com.example.homologacao.Repository.IchoHistoricoRepository;
+import com.example.homologacao.Repository.ModuloRepository;
 import com.example.homologacao.Repository.UserRepository;
 import com.example.homologacao.model.Enum.StatusIcho;
 import com.example.homologacao.model.Icho;
 import com.example.homologacao.model.IchoHistorico;
+import com.example.homologacao.model.Modulo;
 import com.example.homologacao.model.Usuario;
 import jakarta.transaction.Transactional;
 import org.springframework.security.core.Authentication;
@@ -29,6 +32,8 @@ public class IchoService {
     private final IchoHistoricoRepository historicoRepository;
     private final UserRepository userRepository;
     private final ImplantacaoService implantacaoService;
+    private final ModuloRepository moduloRepository;
+    private final GrupoUsuarioMembroRepository membroRepository;
 
     private static final Map<StatusIcho, EnumSet<StatusIcho>> TRANSICOES_PERMITIDAS =
             new EnumMap<>(StatusIcho.class);
@@ -67,21 +72,27 @@ public class IchoService {
     public IchoService(IchoRepository repository,
                        IchoHistoricoRepository historicoRepository,
                        UserRepository userRepository,
-                       ImplantacaoService implantacaoService) {
+                       ImplantacaoService implantacaoService,
+                       ModuloRepository moduloRepository,
+                       GrupoUsuarioMembroRepository membroRepository) {
         this.repository = repository;
         this.historicoRepository = historicoRepository;
         this.userRepository = userRepository;
         this.implantacaoService = implantacaoService;
+        this.moduloRepository = moduloRepository;
+        this.membroRepository = membroRepository;
     }
 
     @Transactional
     public Icho criar(Icho icho) {
+        Modulo modulo = resolverModulo(icho.getModulo());
+        icho.setModulo(modulo);
+        aplicarResponsavelDoPayload(icho, icho, modulo);
         icho.setStatus(StatusIcho.NAO_TESTADO);
         icho.setDataTeste(null);
-        icho.setTestadoPor(null);
 
         Icho salvo = repository.save(icho);
-        registrarHistorico(salvo, null, StatusIcho.NAO_TESTADO, null, "ICHO criada");
+        registrarHistorico(salvo, null, StatusIcho.NAO_TESTADO, salvo.getTestadoPor(), "ICHO criada");
         return salvo;
     }
 
@@ -117,15 +128,28 @@ public class IchoService {
 
     @Transactional
     public Icho atualizarStatus(Long id, StatusIcho status, String usuario, String observacao) {
+        return atualizarStatus(id, status, usuario, observacao, null);
+    }
+
+    @Transactional
+    public Icho atualizarStatus(Long id,
+                                StatusIcho status,
+                                String usuario,
+                                String observacao,
+                                Long testadoPorUsuarioId) {
         Icho icho = repository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "ICHO não encontrado"));
 
         StatusIcho statusAnterior = icho.getStatus();
         validarTransicao(statusAnterior, status);
 
-        String usuarioResponsavel = resolverUsuarioResponsavel(usuario);
+        Usuario usuarioTeste = resolverUsuarioTeste(testadoPorUsuarioId, icho);
+        String usuarioResponsavel = usuarioTeste == null
+                ? resolverUsuarioResponsavel(usuario)
+                : usuarioTeste.getUsername();
         icho.setStatus(status);
         icho.setTestadoPor(usuarioResponsavel);
+        icho.setTestadoPorUsuario(usuarioTeste);
         icho.setDataTeste(LocalDate.now());
         icho.setObservacao(observacao);
 
@@ -147,6 +171,7 @@ public class IchoService {
 
         StatusIcho statusAnterior = icho.getStatus();
         StatusIcho novoStatus = payload.getStatus();
+        Modulo modulo = payload.getModulo() != null ? resolverModulo(payload.getModulo()) : icho.getModulo();
 
         if (novoStatus != null) {
             validarTransicao(statusAnterior, novoStatus);
@@ -160,16 +185,14 @@ public class IchoService {
             icho.setDescricao(payload.getDescricao());
         }
         if (payload.getModulo() != null) {
-            icho.setModulo(payload.getModulo());
+            icho.setModulo(modulo);
         }
         if (payload.getDataTeste() != null) {
             icho.setDataTeste(payload.getDataTeste());
         } else if (novoStatus != null && statusAnterior != novoStatus) {
             icho.setDataTeste(LocalDate.now());
         }
-        if (payload.getTestadoPor() != null) {
-            icho.setTestadoPor(payload.getTestadoPor());
-        }
+        aplicarResponsavelDoPayload(icho, payload, modulo);
         if (payload.getObservacao() != null) {
             icho.setObservacao(payload.getObservacao());
         }
@@ -274,6 +297,69 @@ public class IchoService {
         }
 
         return userRepository.findByUsername(usuarioResponsavel).orElse(null);
+    }
+
+    private void aplicarResponsavelDoPayload(Icho destino, Icho payload, Modulo modulo) {
+        Long usuarioId = payload.getTestadoPorUsuarioId();
+        if (usuarioId != null) {
+            Usuario usuario = resolverUsuarioTeste(usuarioId, modulo);
+            destino.setTestadoPorUsuario(usuario);
+            destino.setTestadoPor(usuario.getUsername());
+            return;
+        }
+
+        if (payload.getTestadoPor() == null) {
+            return;
+        }
+
+        destino.setTestadoPor(payload.getTestadoPor());
+        userRepository.findByUsername(payload.getTestadoPor())
+                .filter(usuario -> pertenceAImplantacao(usuario.getId(), obterImplantacaoId(modulo)))
+                .ifPresent(destino::setTestadoPorUsuario);
+    }
+
+    private Usuario resolverUsuarioTeste(Long usuarioId, Icho icho) {
+        if (usuarioId == null) {
+            return null;
+        }
+        return resolverUsuarioTeste(usuarioId, icho.getModulo());
+    }
+
+    private Usuario resolverUsuarioTeste(Long usuarioId, Modulo modulo) {
+        Usuario usuario = userRepository.findById(usuarioId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário responsável pelo teste não encontrado"));
+
+        Long implantacaoId = obterImplantacaoId(modulo);
+        if (!pertenceAImplantacao(usuarioId, implantacaoId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Usuário responsável pelo teste não pertence à implantação"
+            );
+        }
+
+        return usuario;
+    }
+
+    private boolean pertenceAImplantacao(Long usuarioId, Long implantacaoId) {
+        return usuarioId != null
+                && implantacaoId != null
+                && membroRepository.existsByGrupoImplantacaoIdAndUsuarioId(implantacaoId, usuarioId);
+    }
+
+    private Long obterImplantacaoId(Modulo modulo) {
+        if (modulo == null || modulo.getImplantacao() == null) {
+            return null;
+        }
+        return modulo.getImplantacao().getId();
+    }
+
+    private Modulo resolverModulo(Modulo modulo) {
+        if (modulo == null || modulo.getId() == null) {
+            return modulo;
+        }
+
+        return moduloRepository.findById(modulo.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Módulo não encontrado"));
     }
 
     private void reavaliarCicloVidaImplantacao(Icho icho) {

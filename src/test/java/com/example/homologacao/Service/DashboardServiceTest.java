@@ -7,6 +7,7 @@ import com.example.homologacao.dto.DashboardResumoResponse;
 import com.example.homologacao.model.Enum.AcaoPermissao;
 import com.example.homologacao.model.Enum.RecursoSistema;
 import com.example.homologacao.model.Enum.StatusIcho;
+import com.example.homologacao.model.Enum.StatusImplantacao;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -54,9 +55,9 @@ class DashboardServiceTest {
                 new Object[]{StatusIcho.NAO_TESTADO, 23L}
         ));
         when(implantacaoRepository.countPorStatus()).thenReturn(List.<Object[]>of(
-                new Object[]{Model.Enum.StatusImplantacao.EM_ANDAMENTO, 6L},
-                new Object[]{Model.Enum.StatusImplantacao.FINALIZADA, 3L},
-                new Object[]{Model.Enum.StatusImplantacao.CANCELADA, 1L}
+                new Object[]{StatusImplantacao.EM_ANDAMENTO, 6L},
+                new Object[]{StatusImplantacao.FINALIZADA, 3L},
+                new Object[]{StatusImplantacao.CANCELADA, 1L}
         ));
 
         DashboardResumoResponse response = dashboardService.resumo();
@@ -89,7 +90,7 @@ class DashboardServiceTest {
                 new Object[]{StatusIcho.FALHA, 1L}
         ));
         when(implantacaoRepository.countPorStatusByIdIn(idsPermitidos)).thenReturn(List.<Object[]>of(
-                new Object[]{Model.Enum.StatusImplantacao.EM_ANDAMENTO, 2L}
+                new Object[]{StatusImplantacao.EM_ANDAMENTO, 2L}
         ));
 
         DashboardResumoResponse response = dashboardService.resumo();
@@ -119,7 +120,7 @@ class DashboardServiceTest {
                 new Object[]{StatusIcho.OK, 1L}
         ));
         when(implantacaoRepository.countPorStatus()).thenReturn(List.<Object[]>of(
-                new Object[]{Model.Enum.StatusImplantacao.EM_ANDAMENTO, 1L}
+                new Object[]{StatusImplantacao.EM_ANDAMENTO, 1L}
         ));
 
         DashboardResumoResponse response = dashboardService.resumo();

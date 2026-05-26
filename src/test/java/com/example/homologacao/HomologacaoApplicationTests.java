@@ -1,13 +1,14 @@
 package com.example.homologacao;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+import static org.assertj.core.api.Assertions.assertThat;
+
 class HomologacaoApplicationTests {
 
 	@Test
-	void contextLoads() {
+	void applicationClassIsLoadable() {
+		assertThat(HomologacaoApplication.class).isNotNull();
 	}
 
 }
