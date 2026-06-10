@@ -12,4 +12,6 @@ public interface IchoHistoricoRepository extends JpaRepository<IchoHistorico, Lo
     boolean existsByIchoId(Long ichoId);
 
     List<IchoHistorico> findByIchoIdOrderByDataAlteracaoAsc(Long ichoId);
+
+    List<IchoHistorico> findByIchoIdInOrderByDataAlteracaoAsc(List<Long> ichoIds);
 }
