@@ -130,6 +130,41 @@ public class ImplantacaoService {
         return implantacaoRepository.save(implantacao);
     }
 
+    public Implantacao finalizar(Long id) {
+        permissaoService.exigirPermissaoNaImplantacao(id, RecursoSistema.IMPLANTACOES, AcaoPermissao.ALTERAR);
+
+        Implantacao implantacao = implantacaoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Implantação não encontrada"));
+
+        if (implantacao.getStatus() == StatusImplantacao.FINALIZADA) {
+            return implantacao;
+        }
+
+        if (LocalDate.now().isBefore(implantacao.getDataGoLive())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Implantação ainda não chegou na data de Go Live"
+            );
+        }
+
+        boolean possuiPendencias = ichoRepository.existsByModuloImplantacaoIdAndStatusIn(
+                id,
+                statusComPendenciaAposGoLive()
+        );
+
+        if (possuiPendencias) {
+            implantacao.setStatus(StatusImplantacao.EM_HOMOLOGACAO);
+            implantacaoRepository.save(implantacao);
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Implantação possui ICHOs pendentes e não pode ser finalizada"
+            );
+        }
+
+        implantacao.setStatus(StatusImplantacao.FINALIZADA);
+        return implantacaoRepository.save(implantacao);
+    }
+
     @Transactional
     public void deletar(Long id) {
         permissaoService.exigirPermissaoNaImplantacao(id, RecursoSistema.IMPLANTACOES, AcaoPermissao.DELETAR);

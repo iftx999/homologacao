@@ -6,6 +6,8 @@ import com.example.homologacao.Repository.IchoRepository;
 import com.example.homologacao.Repository.ImplantacaoRepository;
 import com.example.homologacao.Repository.ModuloRepository;
 import com.example.homologacao.dto.UsuarioImplantacaoResponse;
+import com.example.homologacao.model.Enum.AcaoPermissao;
+import com.example.homologacao.model.Enum.RecursoSistema;
 import com.example.homologacao.model.GrupoUsuario;
 import com.example.homologacao.model.GrupoUsuarioMembro;
 import com.example.homologacao.model.Enum.StatusImplantacao;
@@ -16,11 +18,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.MailSendException;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -135,6 +140,42 @@ class ImplantacaoServiceTest {
                 com.example.homologacao.model.Enum.RecursoSistema.IMPLANTACOES,
                 com.example.homologacao.model.Enum.AcaoPermissao.LER
         );
+    }
+
+    @Test
+    void finalizaImplantacaoSemPendenciasAposGoLive() {
+        Implantacao implantacao = emHomologacaoComGoLiveVencido();
+        implantacao.setStatus(StatusImplantacao.APROVADA);
+        when(implantacaoRepository.findById(42L)).thenReturn(Optional.of(implantacao));
+        when(ichoRepository.existsByModuloImplantacaoIdAndStatusIn(eq(42L), anyList()))
+                .thenReturn(false);
+        when(implantacaoRepository.save(implantacao)).thenReturn(implantacao);
+
+        Implantacao finalizada = criarService().finalizar(42L);
+
+        assertThat(finalizada.getStatus()).isEqualTo(StatusImplantacao.FINALIZADA);
+        verify(permissaoService).exigirPermissaoNaImplantacao(
+                42L,
+                RecursoSistema.IMPLANTACOES,
+                AcaoPermissao.ALTERAR
+        );
+        verify(implantacaoRepository).save(implantacao);
+    }
+
+    @Test
+    void naoFinalizaImplantacaoComPendencias() {
+        Implantacao implantacao = emHomologacaoComGoLiveVencido();
+        implantacao.setStatus(StatusImplantacao.APROVADA);
+        when(implantacaoRepository.findById(42L)).thenReturn(Optional.of(implantacao));
+        when(ichoRepository.existsByModuloImplantacaoIdAndStatusIn(eq(42L), anyList()))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> criarService().finalizar(42L))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("ICHOs pendentes");
+
+        assertThat(implantacao.getStatus()).isEqualTo(StatusImplantacao.EM_HOMOLOGACAO);
+        verify(implantacaoRepository).save(implantacao);
     }
 
     private ImplantacaoService criarService() {

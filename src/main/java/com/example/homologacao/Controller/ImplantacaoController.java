@@ -72,6 +72,11 @@ public class ImplantacaoController {
         return ResponseEntity.ok(service.atualizar(id, implantacao));
     }
 
+    @PatchMapping("/{id}/finalizar")
+    public ResponseEntity<Implantacao> finalizar(@PathVariable Long id) {
+        return ResponseEntity.ok(service.finalizar(id));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         service.deletar(id);
